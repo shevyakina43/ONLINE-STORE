@@ -101,3 +101,42 @@ FROM (
 ) ranked
 WHERE rank_in_category <= 3
 ORDER BY category, price DESC;
+
+
+BEGIN;
+-- Создаем новый заказ для Taras (id=2)
+INSERT INTO orders (customer_id) VALUES (2); -- Taras
+-- Додаємо товари до цього замовлення
+INSERT INTO order_items (order_id, product_id, quantity)
+VALUES 
+(4, 2, 3),
+(4, 5, 2),
+(4, 4, 1);
+-- фиксируем транзакцию
+COMMIT;
+
+-- Создаем View
+CREATE OR REPLACE VIEW customer_summary AS
+SELECT 
+    c.id AS customer_id,
+    c.name AS customer_name,
+    COUNT(DISTINCT o.id) AS orders_count,
+    COALESCE(SUM(oi.quantity * p.price), 0) AS total_spent
+FROM customers1 c
+LEFT JOIN orders1 o ON o.customer_id = c.id
+LEFT JOIN order_items1 oi ON oi.order_id = o.id
+LEFT JOIN products1 p ON p.id = oi.product_id
+GROUP BY c.id, c.name;
+
+-- Используем View для получения отчета
+SELECT *
+FROM customer_summary
+ORDER BY total_spent DESC;
+
+-- Опционально: Top-3 клиентов по расходам
+SELECT *
+FROM customer_summary
+ORDER BY total_spent DESC
+LIMIT 3;
+
+SELECT * FROM customer_summary;
